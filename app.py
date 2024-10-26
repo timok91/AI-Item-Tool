@@ -450,7 +450,7 @@ def main():
                         labels=dict(x="Items", y="Items", color="Ähnlichkeit"),
                         x=questions,
                         y=questions,
-                        color_continuous_scale=[[0, "white"], [1, "#26358B"]],
+                        color_continuous_scale=[[0, "white"], [1, "#0E165A"]],
                         aspect="auto"
                     )
 
@@ -513,7 +513,7 @@ def main():
                         y=eigenvalues,
                         mode='lines+markers',
                         name='Eigenwerte',
-                        line=dict(color='#26358B'),
+                        line=dict(color='#0E165A'),
                         marker=dict(size=10)
                     ))
 
