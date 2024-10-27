@@ -168,7 +168,7 @@ def main():
         """)
 
     # scientific literature
-    with st.expander(""):
+    with st.expander("Wissenschaftliche Grundlagen"):
         st.markdown("""
                     
         Guenole, N., D’Urso, E. D., Samo, A., & Sun, T. (2024). Pseudo Factor Analysis of Language Embedding Similarity Matrices: New Ways to Model Latent Constructs. OSF. https://doi.org/10.31234/osf.io/vf3se
