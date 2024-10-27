@@ -171,10 +171,10 @@ def main():
     with st.expander("Wissenschaftliche Grundlagen"):
         st.markdown("""
                     
-        Guenole, N., D’Urso, E. D., Samo, A., & Sun, T. (2024). Pseudo Factor Analysis of Language Embedding Similarity Matrices: New Ways to Model Latent Constructs. OSF. https://doi.org/10.31234/osf.io/vf3se
-        Guenole, N., & Samo, A. (2024). Pseudo-Discrimination Parameters from Language Embeddings. OSF. https://doi.org/10.31234/osf.io/9a4qx
-        Hernandez, I., & Nie, W. (2023). The AI-IP: Minimizing the guesswork of personality scale item development through artificial intelligence. Personnel Psychology, 76(4), 1011–1035. https://doi.org/10.1111/peps.12543
-        Hommel, B. E., & Arslan, R. C. (2024a). Language models accurately infer correlations between psychological items and scales from text alone. OSF. https://doi.org/10.31234/osf.io/kjuce
+        - Guenole, N., D’Urso, E. D., Samo, A., & Sun, T. (2024). Pseudo Factor Analysis of Language Embedding Similarity Matrices: New Ways to Model Latent Constructs. OSF. https://doi.org/10.31234/osf.io/vf3se
+        - Guenole, N., & Samo, A. (2024). Pseudo-Discrimination Parameters from Language Embeddings. OSF. https://doi.org/10.31234/osf.io/9a4qx
+        - Hernandez, I., & Nie, W. (2023). The AI-IP: Minimizing the guesswork of personality scale item development through artificial intelligence. Personnel Psychology, 76(4), 1011–1035. https://doi.org/10.1111/peps.12543
+        - Hommel, B. E., & Arslan, R. C. (2024a). Language models accurately infer correlations between psychological items and scales from text alone. OSF. https://doi.org/10.31234/osf.io/kjuce
 
         """)
 
