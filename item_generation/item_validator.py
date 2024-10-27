@@ -19,9 +19,8 @@ class GermanItemValidator:
         
         self.desirability_markers = {
             'selbstverständlich', 'natürlich', 'offensichtlich',
-            'definitiv', 'zweifellos', 'fraglos', 'normalerweise',
-            'üblicherweise', 'typischerweise', 'gewöhnlich'
-        }
+            'definitiv', 'zweifellos', 'fraglos'
+        } # entfernt: 'normalerweise', 'üblicherweise', 'typischerweise', 'gewöhnlich'
         
         self.conjunctions = {
             'und', 'oder', 'sowie', 'sowohl', 'als auch', 'weder noch',
@@ -82,7 +81,7 @@ class GermanItemValidator:
         reasons = []
         
         if not self._check_length(item):
-            reasons.append("Ungültige Länge (4-20 Wörter erforderlich)")
+            reasons.append("Ungültige Länge (4-25 Wörter erforderlich)")
             
         if not self._check_double_barreled(item):
             reasons.append("Doppelte Aussage gefunden")
@@ -107,7 +106,7 @@ class GermanItemValidator:
 
     def _check_length(self, item: str) -> bool:
         """
-        Check if item length is appropriate (4-20 words).
+        Check if item length is appropriate (4-25 words).
         
         Args:
             item: The item text to check
@@ -116,7 +115,7 @@ class GermanItemValidator:
             True if length is within acceptable range, False otherwise
         """
         words = item.split()
-        return 4 <= len(words) <= 20
+        return 4 <= len(words) <= 25
 
     def _check_double_barreled(self, item: str) -> bool:
         """
