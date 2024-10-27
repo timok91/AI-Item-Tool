@@ -144,7 +144,13 @@ WISSENSCHAFTLICHE ANFORDERUNGEN:
    - Komplexe Verneinungen
 6. Jedes Item muss eine klar beobachtbare Verhaltenstendenz oder Einstellung erfassen
 7. Items sollen optimal zwischen Personen differenzieren können
-8. Items müssen für die allgemeine erwachsene Bevölkerung verständlich sein"""
+8. Items müssen für die allgemeine erwachsene Bevölkerung verständlich sein
+9. Items sollen möglichst konkret formuliert sein
+
+Sozial erwünschte Antworten können insbesondere durch die Methode der evaluativen Neutralisierung reduziert werden:
+Die evaluative Neutralisierung beinhaltet die Umformulierung von Items in eine neutralere Form, wodurch sozial erwünschte Antworten weniger wahrscheinlich werden. Der negative Klang von „Kontakt mit anderen vermeiden" kann abgemildert werden, indem man es zu „Fühle mich auch allein wohl" umformuliert. Ähnlich kann ein positives Item wie „Mag Ordnung" neutraler ausgedrückt werden als „Bin nur zufrieden, wenn die Dinge systematisch geordnet sind."
+Die evaluative Neutralisierung zielt darauf ab, den bewertenden Gehalt von Items zu reduzieren und dabei die inhaltlichen Aspekte des relevanten Merkmals beizubehalten, um dadurch die Kriteriumsvalidität zu verbessern (Leising, Burger, et al., 2020). Dies kann durch umfangreiche Umformulierung der Items erreicht werden oder manchmal durch den Austausch eines einzelnen Eigenschaftsadjektivs im Item durch ein weniger wertendes. Peabody (1967, 1984) und Borkenau und Ostendorf (1989) liefern verschiedene Beispiele für Adjektive mit ähnlicher Bedeutung, aber deutlich unterschiedlicher Wertigkeit (z.B. skeptisch versus misstrauisch, wählerisch versus pingelig und bestimmt versus streng).
+"""
 
         if keying == "positive":
             base_prompt += """
