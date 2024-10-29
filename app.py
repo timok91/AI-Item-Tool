@@ -284,20 +284,50 @@ def main():
             except Exception as e:
                 st.error(f"Fehler beim Einlesen der Datei: {str(e)}")
 
-    # Tab 3: AI Generation
+# Tab 3: AI Generation
     with tab_generate:
         generator = initialize_item_generator()
         if generator is None:
             st.error("Item-Generator konnte nicht initialisiert werden.")
             st.stop()
         
-        col1, col2, col3 = st.columns(3)
-        with col1:
+        # Create two rows of controls
+        row1_col1, row1_col2, row1_col3 = st.columns(3)
+        with row1_col1:
             n_items = st.slider("Anzahl Items", min_value=5, max_value=30, value=10)
-        with col2:
+        with row1_col2:
             negative_ratio = st.slider("Anteil negativer Items", min_value=0.0, max_value=0.5, value=0.3)
-        with col3:
+        with row1_col3:
             work_context = st.checkbox("Arbeitskontext", value=False)
+
+        row2_col1, row2_col2 = st.columns(2)
+        with row2_col1:
+            model = st.selectbox(
+                "Claude Modell",
+                options=[
+                    "claude-3-haiku-20240307",
+                    "claude-3-sonnet-20240229",
+                    "claude-3-5-sonnet-20241022"
+                ],
+                help="""
+                Haiku: Schnellste Antworten, gut für einfache Aufgaben
+                Sonnet 3: Ausgewogene Leistung, gut für komplexere Aufgaben
+                Sonnet 3.5: Höchste Qualität, am besten für anspruchsvolle Aufgaben
+                """
+            )
+        with row2_col2:
+            temperature = st.slider(
+                "Kreativität (Temperature)",
+                min_value=0.0,
+                max_value=1.0,
+                value=0.7,
+                step=0.1,
+                help="""
+                0.0: Sehr konservative, konsistente Antworten
+                0.7: Ausgewogene Mischung aus Kreativität und Konsistenz
+                1.0: Maximale Kreativität und Variation
+                """
+            )
 
         generate_button = st.button("Items Generieren", type="primary")
         
@@ -312,11 +342,11 @@ def main():
                         construct_definition=construct,
                         n_items=n_items,
                         work_context=work_context,
-                        negative_ratio=negative_ratio
+                        negative_ratio=negative_ratio,
+                        model=model,
+                        temperature=temperature
                     )
                     st.session_state.generated_items = generated_items
-                    # Remove this line to prevent double display
-                    # generator.format_results_for_display(generated_items)
 
                 # Create two columns for the buttons
                 col1, col2 = st.columns(2)

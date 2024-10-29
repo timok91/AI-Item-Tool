@@ -18,10 +18,12 @@ class GermanPersonalityItemGenerator:
         self.validator = GermanItemValidator()
 
     def generate_items(self,
-                      construct_definition: str,
-                      n_items: int = 10,
-                      work_context: bool = False,
-                      negative_ratio: float = 0.3) -> Dict[str, Union[List[str], Dict]]:
+                  construct_definition: str,
+                  n_items: int = 10,
+                  work_context: bool = False,
+                  negative_ratio: float = 0.3,
+                  model: str = "claude-3-haiku-20240307",  
+                  temperature: float = 0.7) -> Dict[str, Union[List[str], Dict]]:
         """
         Generate personality items with controlled positive/negative ratio.
         """
@@ -30,7 +32,9 @@ class GermanPersonalityItemGenerator:
             construct_definition,
             n_items,
             work_context,
-            negative_ratio
+            negative_ratio,
+            model,
+            temperature
         )
 
     @st.cache_data(show_spinner=False)
@@ -39,7 +43,9 @@ class GermanPersonalityItemGenerator:
         construct_definition: str,
         n_items: int,
         work_context: bool,
-        negative_ratio: float
+        negative_ratio: float,
+        model: str,
+        temperature: float
     ) -> Dict[str, Union[List[str], Dict]]:
         """
         Cached version of generate_items implementation
@@ -59,14 +65,18 @@ class GermanPersonalityItemGenerator:
             construct_definition, 
             n_positive_generate, 
             work_context,
-            "positive"
+            "positive",
+            model,
+            temperature
         )
         
         negative_items = _self._generate_items(
             construct_definition, 
             n_negative_generate, 
             work_context,
-            "negative"
+            "negative",
+            model,
+            temperature
         )
         
         # Trim to requested numbers if we have more valid items than needed
@@ -88,7 +98,9 @@ class GermanPersonalityItemGenerator:
                 "construct": construct_definition,
                 "work_context": work_context,
                 "n_requested": n_items,
-                "n_generated": len(all_valid_items)
+                "n_generated": len(all_valid_items),
+                "model": model,            
+                "temperature": temperature
             }
         }
 
@@ -96,7 +108,9 @@ class GermanPersonalityItemGenerator:
                    construct_def: str, 
                    n_items: int, 
                    work_context: bool,
-                   keying: str) -> Dict[str, List[str]]:
+                   keying: str,
+                   model: str,
+                   temperature: float) -> Dict[str, List[str]]:
         """
         Generate and validate items for a specific keying.
         """
@@ -104,9 +118,9 @@ class GermanPersonalityItemGenerator:
         
         try:
             response = self.client.messages.create(
-                model="claude-3-haiku-20240307",
+                model=model,
                 max_tokens=1024,
-                temperature=0.7,
+                temperature=temperature,
                 messages=[{
                     "role": "user",
                     "content": prompt
@@ -147,7 +161,7 @@ WISSENSCHAFTLICHE ANFORDERUNGEN:
 8. Items müssen für die allgemeine erwachsene Bevölkerung verständlich sein
 9. Items sollen möglichst konkret formuliert sein
 
-Sozial erwünschte Antworten können insbesondere durch die Methode der evaluativen Neutralisierung reduziert werden:
+Reduziere sozial erwünschte Antworten insbesondere durch die Methode der evaluativen Neutralisierung:
 Die evaluative Neutralisierung beinhaltet die Umformulierung von Items in eine neutralere Form, wodurch sozial erwünschte Antworten weniger wahrscheinlich werden. Der negative Klang von „Kontakt mit anderen vermeiden" kann abgemildert werden, indem man es zu „Fühle mich auch allein wohl" umformuliert. Ähnlich kann ein positives Item wie „Mag Ordnung" neutraler ausgedrückt werden als „Bin nur zufrieden, wenn die Dinge systematisch geordnet sind."
 Die evaluative Neutralisierung zielt darauf ab, den bewertenden Gehalt von Items zu reduzieren und dabei die inhaltlichen Aspekte des relevanten Merkmals beizubehalten, um dadurch die Kriteriumsvalidität zu verbessern (Leising, Burger, et al., 2020). Dies kann durch umfangreiche Umformulierung der Items erreicht werden oder manchmal durch den Austausch eines einzelnen Eigenschaftsadjektivs im Item durch ein weniger wertendes. Peabody (1967, 1984) und Borkenau und Ostendorf (1989) liefern verschiedene Beispiele für Adjektive mit ähnlicher Bedeutung, aber deutlich unterschiedlicher Wertigkeit (z.B. skeptisch versus misstrauisch, wählerisch versus pingelig und bestimmt versus streng).
 """
@@ -188,7 +202,7 @@ FORMAT:
 - Verwenden Sie Präsens
 - Achten Sie auf korrekte deutsche Grammatik und Rechtschreibung
 - Listen Sie die Items einfach durchnummeriert auf
-- Nennen Sie nur die tatsächlichen Items, keine Einleitungssätze oder zusätzlichen Erklärungen"""
+- Nennen Sie nur die tatsächlichen Items und NIEMALS irgendwelche Einleitungssätze oder zusätzlichen Erklärungen"""
 
         return base_prompt
 
@@ -283,3 +297,5 @@ FORMAT:
             st.write(f"- Angeforderte Items: {meta.get('n_requested', 'N/A')}")
             st.write(f"- Generierte Items: {meta.get('n_generated', 'N/A')}")
             st.write(f"- Arbeitskontext: {'Ja' if meta.get('work_context') else 'Nein'}")
+            st.write(f"- Modell: {meta.get('model', 'N/A')}")
+            st.write(f"- Temperature: {meta.get('temperature', 'N/A')}")
