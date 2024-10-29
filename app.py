@@ -159,12 +159,16 @@ def main():
         st.markdown("""
         **Funktionsweise:**
         1. Geben Sie eine Konstruktdefinition ein oder nutzen Sie das vorgegebene Beispiel
-        2. Fügen Sie potenzielle Items hinzu
+        2. Fügen Sie potenzielle Items hinzu. Hierzu stehen 3 Methoden zur Auswahl:
+            - Items manuell hinzufügen
+            - Items per Excel/CSV-Datei hinzufügen
+            - Items mit KI generieren
         3. Starten Sie die Analyse
         4. Prüfen Sie die Ergebnisse in den verschiedenen Tabs:
             - BERT Ergebnisse
             - SBERT Ergebnisse
             - Item-Ähnlichkeiten (Heatmap)
+            - Pseudo-Faktorenanalyse
         """)
 
     # scientific literature
