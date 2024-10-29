@@ -255,7 +255,7 @@ FORMAT:
             return
 
         # Display valid items
-        st.subheader("🎯 Generierte Items")
+        st.subheader("Generierte Items")
         
         # Positive items
         if generated_items.get("positive"):
