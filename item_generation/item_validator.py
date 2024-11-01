@@ -94,7 +94,7 @@ class GermanItemValidator:
             
         if keying == "negative":
             if not self._check_negative_item_quality(item):
-                reasons.append("Ungültige negative Formulierung")
+                reasons.append("Mehrfache Verneinungen gefunden")  # Updated error message
         else:
             if self._contains_negation(item):
                 reasons.append("Unnötige Verneinung in positivem Item")
@@ -107,12 +107,6 @@ class GermanItemValidator:
     def _check_length(self, item: str) -> bool:
         """
         Check if item length is appropriate (4-25 words).
-        
-        Args:
-            item: The item text to check
-            
-        Returns:
-            True if length is within acceptable range, False otherwise
         """
         words = item.split()
         return 4 <= len(words) <= 25
@@ -120,71 +114,38 @@ class GermanItemValidator:
     def _check_double_barreled(self, item: str) -> bool:
         """
         Check for double-barreled statements using conjunction markers.
-        
-        Args:
-            item: The item text to check
-            
-        Returns:
-            True if item is not double-barreled, False if it is
         """
         return not any(conj in item.lower() for conj in self.conjunctions)
 
     def _check_extremity(self, item: str) -> bool:
         """
         Check for extreme language that could lead to response bias.
-        
-        Args:
-            item: The item text to check
-            
-        Returns:
-            True if no extreme language is found, False otherwise
         """
         return not any(word in item.lower() for word in self.extreme_words)
 
     def _check_social_desirability(self, item: str) -> bool:
         """
         Check for obvious social desirability bias markers.
-        
-        Args:
-            item: The item text to check
-            
-        Returns:
-            True if no obvious social desirability bias is found, False otherwise
         """
         return not any(marker in item.lower() for marker in self.desirability_markers)
 
     def _check_negative_item_quality(self, item: str) -> bool:
         """
         Check if negative item is properly formulated.
+        Only checks for multiple negations, allowing more flexible negative formulations.
         
         Args:
             item: The item text to check
             
         Returns:
-            True if negative item is properly formulated, False otherwise
+            True if item has at most one negation, False if it has multiple negations
         """
         # Check for multiple negations
         negation_count = sum(item.lower().count(neg) for neg in self.negations)
-        if negation_count > 1:
-            return False
-            
-        # Check for proper negative formulation patterns
-        negative_patterns = [
-            r'selten', r'kaum', r'wenig', r'ungern',
-            r'nicht besonders', r'liegt mir nicht',
-            r'fällt mir schwer', r'bereitet mir mühe'
-        ]
-        
-        return any(re.search(pattern, item.lower()) for pattern in negative_patterns)
+        return negation_count <= 1
 
     def _contains_negation(self, item: str) -> bool:
         """
         Check if item contains any negations.
-        
-        Args:
-            item: The item text to check
-            
-        Returns:
-            True if item contains negations, False otherwise
         """
         return any(neg in item.lower() for neg in self.negations)
