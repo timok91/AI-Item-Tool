@@ -366,84 +366,82 @@ def main():
                 """
             )
 
-        if st.button("Items Generieren", type="primary"):
-            if not construct:
-                st.error("Bitte geben Sie eine Konstrukt-Definition ein.")
-                st.stop()
+        # In the tab_generate section, replace the button logic with this:
+
+    # First button: Generate Items
+    if st.button("Items Generieren", type="primary"):
+        if not construct:
+            st.error("Bitte geben Sie eine Konstrukt-Definition ein.")
+            st.stop()
+            
+        try:
+            with st.spinner("Generiere Items..."):
+                generated_items = generator.generate_items(
+                    construct_definition=construct,
+                    n_items=n_items,
+                    work_context=work_context,
+                    negative_ratio=negative_ratio,
+                    model=model_choice,
+                    temperature=temperature
+                )
+                st.session_state.generated_items = generated_items
                 
-            try:
-                with st.spinner("Generiere Items..."):
-                    generated_items = generator.generate_items(
-                        construct_definition=construct,
-                        n_items=n_items,
-                        work_context=work_context,
-                        negative_ratio=negative_ratio,
-                        model=model_choice,
-                        temperature=temperature
-                    )
-                    st.session_state.generated_items = generated_items
+        except Exception as e:
+            st.error(f"Fehler bei der Item-Generierung: {str(e)}")
+            st.write("Details zum Fehler:", str(e))
 
-                # Create two columns for the buttons
-                col1, col2 = st.columns(2)
+    # Always show these if we have generated items
+    if st.session_state.generated_items:
+        # Create two columns for the buttons
+        col1, col2 = st.columns(2)
+        
+        # Column 1: Button to use items
+        with col1:
+            if st.button(
+                "Generierte Items für Analyse verwenden",
+                type="primary"
+            ):
+                all_items = st.session_state.generated_items.get('all_items', [])
+                if not all_items:
+                    all_items = (st.session_state.generated_items.get('positive', []) + 
+                               st.session_state.generated_items.get('negative', []))
                 
-                # Column 1: Button to use items
-                with col1:
-                    if st.button(
-                        "Generierte Items für Analyse verwenden",
-                        key="use_items_button",
-                        type="primary"
-                    ):
-                        if st.session_state.generated_items:
-                            generated_items = st.session_state.generated_items
-                            all_items = generated_items.get('all_items', [])
-                            if not all_items:
-                                all_items = (generated_items.get('positive', []) + 
-                                           generated_items.get('negative', []))
-                            
-                            if all_items:
-                                for item_text in all_items:
-                                    st.session_state.questions.append({
-                                        'id': str(uuid.uuid4()),
-                                        'text': item_text
-                                    })
-                                st.success(f"{len(all_items)} Items wurden erfolgreich zur Analyse hinzugefügt!")
-                                st.session_state.generated_items = None
-                                st.rerun()
-                            else:
-                                st.error("Keine Items zum Hinzufügen gefunden.")
-                        else:
-                            st.error("Bitte generieren Sie zuerst neue Items.")
+                if all_items:
+                    for item_text in all_items:
+                        st.session_state.questions.append({
+                            'id': str(uuid.uuid4()),
+                            'text': item_text
+                        })
+                    st.success(f"{len(all_items)} Items wurden erfolgreich zur Analyse hinzugefügt!")
+                    st.session_state.generated_items = None  # Clear the generated items
+                    st.rerun()
+                else:
+                    st.error("Keine Items zum Hinzufügen gefunden.")
 
-                # Column 2: Download button
-                with col2:
-                    if isinstance(generated_items, dict):
-                        all_items = generated_items.get('all_items', [])
-                        if not all_items:
-                            all_items = (generated_items.get('positive', []) + 
-                                       generated_items.get('negative', []))
-                    elif isinstance(generated_items, list):
-                        all_items = generated_items
-                    else:
-                        all_items = []
+        # Column 2: Download button
+        with col2:
+            if isinstance(st.session_state.generated_items, dict):
+                all_items = st.session_state.generated_items.get('all_items', [])
+                if not all_items:
+                    all_items = (st.session_state.generated_items.get('positive', []) + 
+                               st.session_state.generated_items.get('negative', []))
+            elif isinstance(st.session_state.generated_items, list):
+                all_items = st.session_state.generated_items
+            else:
+                all_items = []
 
-                    df = pd.DataFrame({'Items': all_items})
-                    csv = df.to_csv(index=False).encode('utf-8')
-                    st.download_button(
-                        label="Items als CSV herunterladen",
-                        data=csv,
-                        file_name="generierte_items.csv",
-                        mime="text/csv",
-                        key="download_items"
-                    )
-                    
-            except Exception as e:
-                st.error(f"Fehler bei der Item-Generierung: {str(e)}")
-                st.write("Details zum Fehler:", str(e))
-
-        # Display generated items in expander if they exist
-        if st.session_state.generated_items:
-            with st.expander("🔍 Generierte Items anzeigen", expanded=True):
-                generator.format_results_for_display(st.session_state.generated_items)
+            df = pd.DataFrame({'Items': all_items})
+            csv = df.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="Items als CSV herunterladen",
+                data=csv,
+                file_name="generierte_items.csv",
+                mime="text/csv"
+            )
+        
+        # Display generated items in expander
+        with st.expander("🔍 Generierte Items anzeigen", expanded=True):
+            generator.format_results_for_display(st.session_state.generated_items)
 
     # Display current items
     st.divider()
