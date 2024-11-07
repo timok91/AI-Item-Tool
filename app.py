@@ -90,18 +90,47 @@ def initialize_item_generator():
 
 @st.cache_resource
 def load_models():
+    """
+    Load and cache the required models.
+    Returns tuple of (tokenizer, model, sbert_model)
+    """
     try:
         with st.spinner('Lade Modelle... Dies kann einen Moment dauern.'):
+            # Load BERT tokenizer and model
             bert_tokenizer = BertTokenizer.from_pretrained('bert-base-german-cased')
             bert_model = BertModel.from_pretrained('bert-base-german-cased')
+            
+            # Load SBERT model
             sbert_model = SentenceTransformer('deutsche-telekom/gbert-large-paraphrase-cosine')
+            
+            # Verify the loaded objects are of correct type
+            if not isinstance(bert_tokenizer, BertTokenizer):
+                raise TypeError("Failed to load BERT tokenizer")
+            if not isinstance(bert_model, BertModel):
+                raise TypeError("Failed to load BERT model")
+            if not isinstance(sbert_model, SentenceTransformer):
+                raise TypeError("Failed to load SBERT model")
+                
             return bert_tokenizer, bert_model, sbert_model
+            
     except Exception as e:
         st.error(f"Fehler beim Laden der Modelle: {str(e)}")
+        st.error("Details zum Fehler:", str(e))
         return None, None, None
 
 @st.cache_data
 def bert_sentence_embedding(sentence, _model, _tokenizer):
+    # Input validation
+    if not isinstance(sentence, str):
+        raise ValueError("Input sentence must be a string")
+        
+    if not isinstance(_model, BertModel):
+        raise ValueError("Model must be a BertModel instance")
+        
+    if not isinstance(_tokenizer, BertTokenizer):
+        raise ValueError("Tokenizer must be a BertTokenizer instance")
+    
+    # Create inputs using the tokenizer
     inputs = _tokenizer(
         sentence,
         return_tensors='pt',
@@ -111,14 +140,22 @@ def bert_sentence_embedding(sentence, _model, _tokenizer):
         max_length=512
     )
     
+    # Get attention mask
     attention_mask = inputs['attention_mask']
     
+    # Generate embeddings
     with torch.no_grad():
-        outputs = _model(**inputs)
+        # Properly unpack the dictionary into the model
+        outputs = _model(
+            input_ids=inputs['input_ids'],
+            attention_mask=inputs['attention_mask']
+        )
     
+    # Process the output
     token_embeddings = outputs.last_hidden_state.squeeze(0)
     attention_mask = attention_mask.squeeze(0)
     
+    # Calculate mean embeddings
     mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size())
     sum_embeddings = torch.sum(token_embeddings * mask_expanded, 0)
     sum_mask = torch.clamp(mask_expanded.sum(0), min=1e-9)
@@ -175,18 +212,18 @@ def main():
     with st.expander("Wissenschaftliche Grundlagen"):
         st.markdown("""
                     
-        - Guenole, N., D’Urso, E. D., Samo, A., & Sun, T. (2024). Pseudo Factor Analysis of Language Embedding Similarity Matrices: New Ways to Model Latent Constructs. OSF. https://doi.org/10.31234/osf.io/vf3se
+        - Guenole, N., D'Urso, E. D., Samo, A., & Sun, T. (2024). Pseudo Factor Analysis of Language Embedding Similarity Matrices: New Ways to Model Latent Constructs. OSF. https://doi.org/10.31234/osf.io/vf3se
         - Guenole, N., & Samo, A. (2024). Pseudo-Discrimination Parameters from Language Embeddings. OSF. https://doi.org/10.31234/osf.io/9a4qx
         - Hernandez, I., & Nie, W. (2023). The AI-IP: Minimizing the guesswork of personality scale item development through artificial intelligence. *Personnel Psychology*, *76*(4), 1011–1035. https://doi.org/10.1111/peps.12543
         - Hommel, B. E., & Arslan, R. C. (2024a). Language models accurately infer correlations between psychological items and scales from text alone. OSF. https://doi.org/10.31234/osf.io/kjuce
-
         """)
 
     # Load models
     tokenizer, model, sbert_model = load_models()
 
+    # Verify models loaded correctly
     if tokenizer is None or model is None or sbert_model is None:
-        st.error("Fehler beim Laden der Modelle. Bitte laden Sie die Seite neu, um es erneut zu versuchen.")
+        st.error("Die Modelle konnten nicht geladen werden. Bitte laden Sie die Seite neu.")
         st.stop()
 
     # Sidebar for instructions
@@ -284,13 +321,13 @@ def main():
             except Exception as e:
                 st.error(f"Fehler beim Einlesen der Datei: {str(e)}")
 
-# Tab 3: AI Generation
+    # Tab 3: AI Generation
     with tab_generate:
         generator = initialize_item_generator()
         if generator is None:
             st.error("Item-Generator konnte nicht initialisiert werden.")
             st.stop()
-        
+
         # Create two rows of controls
         row1_col1, row1_col2, row1_col3 = st.columns(3)
         with row1_col1:
@@ -302,7 +339,7 @@ def main():
 
         row2_col1, row2_col2 = st.columns(2)
         with row2_col1:
-            model = st.selectbox(
+            model_choice = st.selectbox(
                 "Claude Modell",
                 options=[
                     "claude-3-haiku-20240307",
@@ -329,9 +366,7 @@ def main():
                 """
             )
 
-        generate_button = st.button("Items Generieren", type="primary")
-        
-        if generate_button:
+        if st.button("Items Generieren", type="primary"):
             if not construct:
                 st.error("Bitte geben Sie eine Konstrukt-Definition ein.")
                 st.stop()
@@ -343,7 +378,7 @@ def main():
                         n_items=n_items,
                         work_context=work_context,
                         negative_ratio=negative_ratio,
-                        model=model,
+                        model=model_choice,
                         temperature=temperature
                     )
                     st.session_state.generated_items = generated_items
@@ -353,18 +388,39 @@ def main():
                 
                 # Column 1: Button to use items
                 with col1:
-                    use_items_button = st.button(
+                    if st.button(
                         "Generierte Items für Analyse verwenden",
                         key="use_items_button",
                         type="primary"
-                    )
+                    ):
+                        if st.session_state.generated_items:
+                            generated_items = st.session_state.generated_items
+                            all_items = generated_items.get('all_items', [])
+                            if not all_items:
+                                all_items = (generated_items.get('positive', []) + 
+                                           generated_items.get('negative', []))
+                            
+                            if all_items:
+                                for item_text in all_items:
+                                    st.session_state.questions.append({
+                                        'id': str(uuid.uuid4()),
+                                        'text': item_text
+                                    })
+                                st.success(f"{len(all_items)} Items wurden erfolgreich zur Analyse hinzugefügt!")
+                                st.session_state.generated_items = None
+                                st.rerun()
+                            else:
+                                st.error("Keine Items zum Hinzufügen gefunden.")
+                        else:
+                            st.error("Bitte generieren Sie zuerst neue Items.")
 
                 # Column 2: Download button
                 with col2:
                     if isinstance(generated_items, dict):
                         all_items = generated_items.get('all_items', [])
                         if not all_items:
-                            all_items = generated_items.get('positive', []) + generated_items.get('negative', [])
+                            all_items = (generated_items.get('positive', []) + 
+                                       generated_items.get('negative', []))
                     elif isinstance(generated_items, list):
                         all_items = generated_items
                     else:
@@ -384,33 +440,8 @@ def main():
                 st.error(f"Fehler bei der Item-Generierung: {str(e)}")
                 st.write("Details zum Fehler:", str(e))
 
-        # Check if the use items button was clicked
-        if 'use_items_button' in st.session_state and st.session_state.use_items_button:
-            if 'generated_items' in st.session_state and st.session_state.generated_items:
-                generated_items = st.session_state.generated_items
-                all_items = generated_items.get('all_items', [])
-                if not all_items:
-                    all_items = generated_items.get('positive', []) + generated_items.get('negative', [])
-                
-                if all_items:
-                    # Add new items to session state
-                    for item_text in all_items:
-                        st.session_state.questions.append({
-                            'id': str(uuid.uuid4()),
-                            'text': item_text
-                        })
-                    st.success(f"{len(all_items)} Items wurden erfolgreich zur Analyse hinzugefügt!")
-                    
-                    # Clear the generated items to prevent duplicate additions
-                    st.session_state.generated_items = None
-                    st.rerun()
-                else:
-                    st.error("Keine Items zum Hinzufügen gefunden.")
-            else:
-                st.error("Bitte generieren Sie zuerst neue Items.")
-
         # Display generated items in expander if they exist
-        if 'generated_items' in st.session_state and st.session_state.generated_items:
+        if st.session_state.generated_items:
             with st.expander("🔍 Generierte Items anzeigen", expanded=True):
                 generator.format_results_for_display(st.session_state.generated_items)
 
@@ -428,177 +459,183 @@ def main():
         if not st.session_state.questions:
             st.error("Bitte fügen Sie mindestens ein Item hinzu.")
         else:
-            with st.spinner("Analysiere Items..."):
-                # Get current questions from session state
-                questions = [item['text'] for item in st.session_state.questions if item['text'].strip()]
-                
-                # Generate embeddings for construct
-                construct_embedding_bert = bert_sentence_embedding(construct, model, tokenizer)
-                construct_embedding_sbert = sbert_model.encode(construct, normalize_embeddings=True)
-                
-                # Generate embeddings for questions
-                bert_embeddings = [bert_sentence_embedding(q, model, tokenizer) for q in questions]
-                sbert_embeddings = sbert_model.encode(questions, normalize_embeddings=True)
-                
-                # Calculate similarities
-                similarities_bert = [abs(cosine_similarity([construct_embedding_bert], [embedding])[0][0]) 
-                                   for embedding in bert_embeddings]
-                similarities_sbert = [abs(cosine_similarity([construct_embedding_sbert], [embedding])[0][0])
-                                    for embedding in sbert_embeddings]
-                
-                # Create tabs for results
-                tab1, tab2, tab3, tab4 = st.tabs([
-                    "BERT Ergebnisse", 
-                    "SBERT Ergebnisse", 
-                    "Item-Ähnlichkeiten", 
-                    "Pseudo-Faktorenanalyse"
-                ])
-                
-                with tab1:
-                    st.subheader("Top 5 Items (BERT)")
-                    results_bert = list(zip(questions, similarities_bert))
-                    results_bert.sort(key=lambda x: x[1], reverse=True)
+            try:
+                with st.spinner("Analysiere Items..."):
+                    # Get current questions from session state
+                    questions = [item['text'] for item in st.session_state.questions 
+                               if item['text'].strip()]
                     
-                    for i, (question, similarity) in enumerate(results_bert[:5], 1):
-                        st.markdown(f"**{i}. Item:** {question}")
-                        st.progress(float(similarity))
-                        st.markdown(f"Ähnlichkeit: {similarity:.4f}")
-                        st.divider()
-                
-                with tab2:
-                    st.subheader("Top 5 Items (SBERT)")
-                    results_sbert = list(zip(questions, similarities_sbert))
-                    results_sbert.sort(key=lambda x: x[1], reverse=True)
+                    # Generate embeddings for construct
+                    construct_embedding_bert = bert_sentence_embedding(construct, model, tokenizer)
+                    construct_embedding_sbert = sbert_model.encode(construct, normalize_embeddings=True)
                     
-                    for i, (question, similarity) in enumerate(results_sbert[:5], 1):
-                        st.markdown(f"**{i}. Item:** {question}")
-                        st.progress(float(similarity))
-                        st.markdown(f"Ähnlichkeit: {similarity:.4f}")
-                        st.divider()
+                    # Generate embeddings for questions
+                    bert_embeddings = [bert_sentence_embedding(q, model, tokenizer) for q in questions]
+                    sbert_embeddings = sbert_model.encode(questions, normalize_embeddings=True)
+                    
+                    # Calculate similarities
+                    similarities_bert = [abs(cosine_similarity([construct_embedding_bert], [embedding])[0][0]) 
+                                       for embedding in bert_embeddings]
+                    similarities_sbert = [abs(cosine_similarity([construct_embedding_sbert], [embedding])[0][0])
+                                        for embedding in sbert_embeddings]
+                    
+                    # Create tabs for results
+                    tab1, tab2, tab3, tab4 = st.tabs([
+                        "BERT Ergebnisse", 
+                        "SBERT Ergebnisse", 
+                        "Item-Ähnlichkeiten", 
+                        "Pseudo-Faktorenanalyse"
+                    ])
+                    
+                    with tab1:
+                        st.subheader("Top 5 Items (BERT)")
+                        results_bert = list(zip(questions, similarities_bert))
+                        results_bert.sort(key=lambda x: x[1], reverse=True)
+                        
+                        for i, (question, similarity) in enumerate(results_bert[:5], 1):
+                            st.markdown(f"**{i}. Item:** {question}")
+                            st.progress(float(similarity))
+                            st.markdown(f"Ähnlichkeit: {similarity:.4f}")
+                            st.divider()
+                    
+                    with tab2:
+                        st.subheader("Top 5 Items (SBERT)")
+                        results_sbert = list(zip(questions, similarities_sbert))
+                        results_sbert.sort(key=lambda x: x[1], reverse=True)
+                        
+                        for i, (question, similarity) in enumerate(results_sbert[:5], 1):
+                            st.markdown(f"**{i}. Item:** {question}")
+                            st.progress(float(similarity))
+                            st.markdown(f"Ähnlichkeit: {similarity:.4f}")
+                            st.divider()
 
-                with tab3:
-                    st.subheader("Paarweise Ähnlichkeiten zwischen Items")
-                    
-                    # Calculate pairwise similarities
-                    n_items = len(questions)
-                    sbert_similarity_matrix = np.zeros((n_items, n_items))
-                    
-                    for i in range(n_items):
-                        for j in range(n_items):
-                            similarity = abs(cosine_similarity([sbert_embeddings[i]], 
-                                                            [sbert_embeddings[j]])[0][0])
-                            sbert_similarity_matrix[i, j] = similarity
-                    
-                    # Create heatmap
-                    fig = px.imshow(
-                        sbert_similarity_matrix,
-                        labels=dict(x="Items", y="Items", color="Ähnlichkeit"),
-                        x=questions,
-                        y=questions,
-                        color_continuous_scale=[[0, "white"], [1, "#0E165A"]],
-                        aspect="auto"
-                    )
+                    with tab3:
+                        st.subheader("Paarweise Ähnlichkeiten zwischen Items")
+                        
+                        # Calculate pairwise similarities
+                        n_items = len(questions)
+                        sbert_similarity_matrix = np.zeros((n_items, n_items))
+                        
+                        for i in range(n_items):
+                            for j in range(n_items):
+                                similarity = abs(cosine_similarity([sbert_embeddings[i]], 
+                                                                [sbert_embeddings[j]])[0][0])
+                                sbert_similarity_matrix[i, j] = similarity
+                        
+                        # Create heatmap
+                        fig = px.imshow(
+                            sbert_similarity_matrix,
+                            labels=dict(x="Items", y="Items", color="Ähnlichkeit"),
+                            x=questions,
+                            y=questions,
+                            color_continuous_scale=[[0, "white"], [1, "#0E165A"]],
+                            aspect="auto"
+                        )
 
-                    fig.update_layout(
-                        width=1000,
-                        height=1000,
-                        title="Heatmap der Item-Ähnlichkeiten",
-                        xaxis_tickangle=-45
-                    )
-                    
-                    st.plotly_chart(fig, use_container_width=True)
+                        fig.update_layout(
+                            width=1000,
+                            height=1000,
+                            title="Heatmap der Item-Ähnlichkeiten",
+                            xaxis_tickangle=-45
+                        )
+                        
+                        st.plotly_chart(fig, use_container_width=True)
 
-                with tab4:
-                    st.subheader("Exploratorische Faktorenanalyse")
-                    
-                    # Use SBERT similarity matrix as correlation matrix
-                    similarity_matrix = np.zeros((len(questions), len(questions)))
-                    for i in range(len(questions)):
-                        for j in range(len(questions)):
-                            similarity = abs(cosine_similarity([sbert_embeddings[i]], 
-                                                            [sbert_embeddings[j]])[0][0])
-                            similarity_matrix[i, j] = similarity
-                    
-                    # Perform EFA
-                    fa = FactorAnalyzer(rotation="varimax", n_factors=1, is_corr_matrix=True)
-                    fa.fit(similarity_matrix)
-                    
-                    # Get factor loadings
-                    loadings = pd.DataFrame(
-                        fa.loadings_,
-                        columns=['Factor 1'],
-                        index=questions
-                    )
-                    
-                    # Display results
-                    st.write("Faktorladungen:")
-                    formatted_loadings = loadings.copy()
-                    formatted_loadings['Factor 1'] = formatted_loadings['Factor 1'].round(3)
-                    formatted_loadings = formatted_loadings.sort_values('Factor 1', ascending=False)
-                    st.dataframe(
-                        formatted_loadings, 
-                        column_config={
-                            "Factor 1": st.column_config.NumberColumn(
-                                "Faktorladung",
-                                format="%.3f"
-                            )
-                        },
-                        height=400
-                    )
-                    
-                    # Scree plot
-                    st.subheader("Scree Plot")
-                    eigenvalues = np.linalg.eigvals(similarity_matrix)
-                    eigenvalues = np.sort(eigenvalues)[::-1]
-                    variance = eigenvalues / len(eigenvalues)
+                    with tab4:
+                        st.subheader("Exploratorische Faktorenanalyse")
+                        
+                        # Use SBERT similarity matrix as correlation matrix
+                        similarity_matrix = np.zeros((len(questions), len(questions)))
+                        for i in range(len(questions)):
+                            for j in range(len(questions)):
+                                similarity = abs(cosine_similarity([sbert_embeddings[i]], 
+                                                                [sbert_embeddings[j]])[0][0])
+                                similarity_matrix[i, j] = similarity
+                        
+                        # Perform EFA
+                        fa = FactorAnalyzer(rotation="varimax", n_factors=1, is_corr_matrix=True)
+                        fa.fit(similarity_matrix)
+                        
+                        # Get factor loadings
+                        loadings = pd.DataFrame(
+                            fa.loadings_,
+                            columns=['Factor 1'],
+                            index=questions
+                        )
+                        
+                        # Display results
+                        st.write("Faktorladungen:")
+                        formatted_loadings = loadings.copy()
+                        formatted_loadings['Factor 1'] = formatted_loadings['Factor 1'].round(3)
+                        formatted_loadings = formatted_loadings.sort_values('Factor 1', ascending=False)
+                        st.dataframe(
+                            formatted_loadings, 
+                            column_config={
+                                "Factor 1": st.column_config.NumberColumn(
+                                    "Faktorladung",
+                                    format="%.3f"
+                                )
+                            },
+                            height=400
+                        )
+                        
+                        # Scree plot
+                        st.subheader("Scree Plot")
+                        eigenvalues = np.linalg.eigvals(similarity_matrix)
+                        eigenvalues = np.sort(eigenvalues)[::-1]
+                        variance = eigenvalues / len(eigenvalues)
 
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(
-                        x=list(range(1, len(eigenvalues) + 1)),
-                        y=eigenvalues,
-                        mode='lines+markers',
-                        name='Eigenwerte',
-                        line=dict(color='#0E165A'),
-                        marker=dict(size=10)
-                    ))
+                        fig = go.Figure()
+                        fig.add_trace(go.Scatter(
+                            x=list(range(1, len(eigenvalues) + 1)),
+                            y=eigenvalues,
+                            mode='lines+markers',
+                            name='Eigenwerte',
+                            line=dict(color='#0E165A'),
+                            marker=dict(size=10)
+                        ))
 
-                    fig.add_hline(
-                        y=1, 
-                        line_dash="dash", 
-                        line_color="red",
-                        annotation_text="Kaiser-Kriterium (Eigenwert = 1)", 
-                        annotation_position="bottom right"
-                    )
+                        fig.add_hline(
+                            y=1, 
+                            line_dash="dash", 
+                            line_color="red",
+                            annotation_text="Kaiser-Kriterium (Eigenwert = 1)", 
+                            annotation_position="bottom right"
+                        )
 
-                    fig.update_layout(
-                        title='Scree Plot zur Bestimmung der Faktorenanzahl',
-                        xaxis_title='Faktor Nummer',
-                        yaxis_title='Eigenwert',
-                        template='plotly_white',
-                        showlegend=True,
-                        width=800,
-                        height=500
-                    )
+                        fig.update_layout(
+                            title='Scree Plot zur Bestimmung der Faktorenanzahl',
+                            xaxis_title='Faktor Nummer',
+                            yaxis_title='Eigenwert',
+                            template='plotly_white',
+                            showlegend=True,
+                            width=800,
+                            height=500
+                        )
 
-                    st.plotly_chart(fig, use_container_width=True)
+                        st.plotly_chart(fig, use_container_width=True)
 
-                    # Interpretation
-                    st.markdown("""
-                    ### Interpretation des Scree Plots:
-                    - Faktoren mit Eigenwerten > 1 (über der roten Linie) sollten nach dem Kaiser-Kriterium beibehalten werden
-                    - Der "Ellbogen" (starker Knick im Verlauf) deutet auf die optimale Faktorenanzahl hin
-                    """)
+                        # Interpretation
+                        st.markdown("""
+                        ### Interpretation des Scree Plots:
+                        - Faktoren mit Eigenwerten > 1 (über der roten Linie) sollten nach dem Kaiser-Kriterium beibehalten werden
+                        - Der "Ellbogen" (starker Knick im Verlauf) deutet auf die optimale Faktorenanzahl hin
+                        """)
 
-                    # Eigenvalues table
-                    eigenvalue_df = pd.DataFrame({
-                        'Faktor': range(1, len(eigenvalues) + 1),
-                        'Eigenwert': eigenvalues.round(3),
-                        'Erklärte Varianz (%)': (variance * 100).round(2),
-                        'Kumulierte Varianz (%)': (np.cumsum(variance) * 100).round(2)
-                    })
+                        # Eigenvalues table
+                        eigenvalue_df = pd.DataFrame({
+                            'Faktor': range(1, len(eigenvalues) + 1),
+                            'Eigenwert': eigenvalues.round(3),
+                            'Erklärte Varianz (%)': (variance * 100).round(2),
+                            'Kumulierte Varianz (%)': (np.cumsum(variance) * 100).round(2)
+                        })
 
-                    st.write("Eigenwerte und erklärte Varianz:")
-                    st.dataframe(eigenvalue_df)
+                        st.write("Eigenwerte und erklärte Varianz:")
+                        st.dataframe(eigenvalue_df)
+
+            except Exception as e:
+                st.error(f"Fehler bei der Analyse: {str(e)}")
+                st.error("Details zum Fehler:", str(e))
 
 if __name__ == "__main__":
     main()
