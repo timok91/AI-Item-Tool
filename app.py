@@ -343,13 +343,15 @@ def main():
                 "Claude Modell",
                 options=[
                     "claude-3-haiku-20240307",
-                    "claude-3-sonnet-20240229",
-                    "claude-3-5-sonnet-20241022"
+                    "claude-3-5-haiku-20241022",
+                    "claude-3-5-sonnet-20241022",
+                    "claude-3-opus-20240229"
                 ],
                 help="""
-                Haiku: Schnellste Antworten, gut für einfache Aufgaben
-                Sonnet 3: Ausgewogene Leistung, gut für komplexere Aufgaben
+                Haiku 3: Schnellste Antworten, gut für einfache Aufgaben
+                Haiku 3.5: Besser als Haiku 3, aber auch etwas teurer
                 Sonnet 3.5: Höchste Qualität, am besten für anspruchsvolle Aufgaben
+                Opus 3: High-End Modell, teuer
                 """
             )
         with row2_col2:
@@ -358,7 +360,7 @@ def main():
                 min_value=0.0,
                 max_value=1.0,
                 value=0.7,
-                step=0.1,
+                step=0.05,
                 help="""
                 0.0: Sehr konservative, konsistente Antworten
                 0.7: Ausgewogene Mischung aus Kreativität und Konsistenz
