@@ -199,6 +199,7 @@ Formulieren Sie die Items im Arbeitskontext. Beziehen Sie sich auf:
         base_prompt += """
 
 FORMAT:
+- KEINE zusätzlichen Sätze oder Einleitungen außer den Items!
 - Verwenden Sie Präsens
 - Achten Sie auf korrekte deutsche Grammatik und Rechtschreibung
 - Listen Sie die Items einfach durchnummeriert auf
