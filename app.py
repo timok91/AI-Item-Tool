@@ -447,7 +447,18 @@ def main():
 
     # Display current items
     st.divider()
-    st.subheader("Aktuelle Items für die Analyse")
+    col_header, col_delete = st.columns([4, 1])
+    with col_header:
+        st.subheader("Aktuelle Items für die Analyse")
+    # Option to delete all current items
+    with col_delete:
+        if st.session_state.questions and len(st.session_state.questions) > 0:
+            if st.button("🗑️ Alle löschen", type="secondary", use_container_width=True):
+                st.session_state.questions = []
+                st.session_state.generated_items = None
+                st.success("Alle Items wurden gelöscht.")
+                st.rerun()
+    
     if st.session_state.questions:
         for i, item in enumerate(st.session_state.questions, 1):
             st.write(f"{i}. {item['text']}")
